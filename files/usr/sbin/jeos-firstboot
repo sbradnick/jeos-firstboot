@@ -4,61 +4,65 @@
 
 set -e
 
-jeos_prefix="$(realpath "$(dirname "${BASH_SOURCE[0]}")/../")"
+#jeos_prefix="$(realpath "$(dirname "${BASH_SOURCE[0]}")/../")"
 
 TEXTDOMAIN='jeos-firstboot'
 
 # shellcheck source-path=SCRIPTDIR/../
-. "${jeos_prefix}/share/jeos-firstboot/jeos-firstboot-functions"
+#. "${jeos_prefix}/share/jeos-firstboot/jeos-firstboot-functions"
+. "/usr/share/jeos-firstboot/jeos-firstboot-functions"
 # shellcheck source-path=SCRIPTDIR/../
-. "${jeos_prefix}/share/jeos-firstboot/jeos-firstboot-dialogs"
+#. "${jeos_prefix}/share/jeos-firstboot/jeos-firstboot-dialogs"
+. "/usr/share/jeos-firstboot/jeos-firstboot-dialogs"
 # shellcheck source-path=SCRIPTDIR/../
-. "${jeos_prefix}/share/jeos-firstboot/welcome-screen"
+#. "${jeos_prefix}/share/jeos-firstboot/welcome-screen"
+. "/usr/share/jeos-firstboot/welcome-screen"
 
 # Read the optional configuration file
 # shellcheck source-path=SCRIPTDIR/../
-[ -f "${jeos_prefix}/share/defaults/jeos-firstboot.conf" ] && . "${jeos_prefix}/share/defaults/jeos-firstboot.conf"
+#[ -f "${jeos_prefix}/share/defaults/jeos-firstboot.conf" ] && . "${jeos_prefix}/share/defaults/jeos-firstboot.conf"
+[ -f "/usr/share/defaults/jeos-firstboot.conf" ] && . "/usr/share/defaults/jeos-firstboot.conf"
 # shellcheck source=/dev/null
 [ -f /etc/jeos-firstboot.conf ] && . /etc/jeos-firstboot.conf
 
 # for testing we may run as non root
 if [ -w /run ]; then
-	export TMPDIR=/run
-	# debugging
-	if [ -n "$FIRSTBOOT_DEBUG" ]; then
-		set -x
-		exec 2>/var/log/firstboot-debug
-	fi
+  export TMPDIR=/run
+  # debugging
+  if [ -n "$FIRSTBOOT_DEBUG" ]; then
+    set -x
+    exec 2>/var/log/firstboot-debug
+  fi
 else
-	dry=1
+  dry=1
 fi
 
 if [ -e /run/cloud-init/enabled ] && ! grep -qw none /run/cloud-init/cloud-id; then
-	echo $"System configured with cloud-init, skipping jeos-firstboot"
-	exit 0
+  echo $"System configured with cloud-init, skipping jeos-firstboot"
+  exit 0
 fi
 
 if [ -n "$dry" ]; then
-	run() {
-		echo "$@"
-	}
+  run() {
+    echo "$@"
+  }
 else
-	run() {
-		"$@"
-	}
+  run() {
+    "$@"
+  }
 fi
 
 cleanup() {
-	call_module_hook cleanup
-	# reenable systemd and kernel logs
-	# Try the race-free DBus method first
-	if ! run dbus-send --system --print-reply --dest=org.freedesktop.systemd1 /org/freedesktop/systemd1 \
-	     org.freedesktop.systemd1.Manager.SetShowStatus string: &>/dev/null; then
-		# Fall back to using signals
-		run kill -s SIGRTMAX-10 1
-	fi
-	run setterm -msg on 2>/dev/null || true
-	echo
+  call_module_hook cleanup
+  # reenable systemd and kernel logs
+  # Try the race-free DBus method first
+  if ! run dbus-send --system --print-reply --dest=org.freedesktop.systemd1 /org/freedesktop/systemd1 \
+    org.freedesktop.systemd1.Manager.SetShowStatus string: &>/dev/null; then
+    # Fall back to using signals
+    run kill -s SIGRTMAX-10 1
+  fi
+  run setterm -msg on 2>/dev/null || true
+  echo
 }
 trap cleanup EXIT
 
@@ -67,11 +71,11 @@ run setterm -msg off 2>/dev/null || true
 # Avoid systemd messages spamming our console
 # Try the race-free DBus method first
 if ! run dbus-send --system --print-reply --dest=org.freedesktop.systemd1 /org/freedesktop/systemd1 \
-     org.freedesktop.systemd1.Manager.SetShowStatus string:off &>/dev/null; then
-	# Fall back to using signals
-	run kill -s SIGRTMAX-9 1
-	# sleep to avoid systemd bug, bsc#1119382
-	sleep 1
+  org.freedesktop.systemd1.Manager.SetShowStatus string:off &>/dev/null; then
+  # Fall back to using signals
+  run kill -s SIGRTMAX-9 1
+  # sleep to avoid systemd bug, bsc#1119382
+  sleep 1
 fi
 
 init_modules
@@ -88,13 +92,13 @@ JEOS_KEYTABLE=${JEOS_KEYTABLE-}
 use_utc_as_default_tz=0
 
 if [ -z "$JEOS_LOCALE" ] && ! get_credential JEOS_LOCALE firstboot.locale; then
-	welcome_screen_with_console_switch
-	dialog_locale
+  welcome_screen_with_console_switch
+  dialog_locale
 
-	# Same check as inside dialog_locale
-	if [ "${#list[@]}" -eq 2 ]; then
-		use_utc_as_default_tz=1
-	fi
+  # Same check as inside dialog_locale
+  if [ "${#list[@]}" -eq 2 ]; then
+    use_utc_as_default_tz=1
+  fi
 fi
 
 # Activate the locale selected
@@ -103,17 +107,17 @@ apply_locale
 systemd_firstboot_args+=("--locale=$JEOS_LOCALE")
 
 if [ -z "$JEOS_KEYTABLE" ] && ! get_credential JEOS_KEYTABLE firstboot.keymap; then
-	welcome_screen_with_console_switch
-	dialog_keytable
-fi 
+  welcome_screen_with_console_switch
+  dialog_keytable
+fi
 
 # langset.sh needs locale to set keytable
 apply_locale_and_keytable
 
 # apply_locale(_and_keytable) also sets the TZ, override it here
 if [ "$use_utc_as_default_tz" -eq "1" ]; then
-	rm -f /etc/localtime
-	ln -s /usr/share/zoneinfo/UTC /etc/localtime
+  rm -f /etc/localtime
+  ln -s /usr/share/zoneinfo/UTC /etc/localtime
 fi
 
 [ -n "$JEOS_LOCALE" ] && language="${JEOS_LOCALE%%_*}" || language="en"
@@ -121,83 +125,86 @@ force_english_license=0
 export LANG="$JEOS_LOCALE"
 
 kmscon_available() {
-	# kmscon itself is installed
-	kmscon --help >/dev/null 2>&1 || return 1
-	# At least one monospace font is available
-	[ -n "$(fc-match "monospace" 2>/dev/null)" ] || return 1
+  # kmscon itself is installed
+  kmscon --help >/dev/null 2>&1 || return 1
+  # At least one monospace font is available
+  [ -n "$(fc-match "monospace" 2>/dev/null)" ] || return 1
 
-	return 0
+  return 0
 }
 
 fbiterm_available() {
-	# fbiterm itself is installed
-	fbiterm --help >/dev/null 2>&1 || return 1
-	# fbiterm comes with its own fallback font
+  # fbiterm itself is installed
+  fbiterm --help >/dev/null 2>&1 || return 1
+  # fbiterm comes with its own fallback font
 
-	return 0
+  return 0
 }
 
 if [[ "$(resolve_tty "$(tty)")" =~ /dev/tty[0-9]+ ]]; then
-	# Those languages can't be displayed in the console
-	declare -A start_kmscon
-	start_kmscon["cs"]=1
-	start_kmscon["ja"]=1
-	start_kmscon["zh"]=1
-	start_kmscon["ko"]=1
+  # Those languages can't be displayed in the console
+  declare -A start_kmscon
+  start_kmscon["cs"]=1
+  start_kmscon["ja"]=1
+  start_kmscon["zh"]=1
+  start_kmscon["ko"]=1
 
-	# Relay those settings to the nested instance
-	export JEOS_LOCALE JEOS_KEYTABLE
-	if [ -n "$JEOS_LOCALE" -a -n "${start_kmscon[${language}]+_}" ]; then
-		if kmscon_available; then
-			ret_file="$(mktemp)"
-			kmscon --silent --font-size 10 --palette vga --no-reset-env -l -- /bin/sh -c "$0; echo \$? > $ret_file; kill \$PPID"
-			exit $(cat "$ret_file"; rm -f "$ret_file")
-		elif fbiterm_available; then
-			exec fbiterm -- "$0"
-		else
-			# No kmscon or fbiterm, fall back to english
-			export LANG="en_US.UTF-8"
-			force_english_license=1
-		fi
-	fi
+  # Relay those settings to the nested instance
+  export JEOS_LOCALE JEOS_KEYTABLE
+  if [ -n "$JEOS_LOCALE" -a -n "${start_kmscon[${language}]+_}" ]; then
+    if kmscon_available; then
+      ret_file="$(mktemp)"
+      kmscon --silent --font-size 10 --palette vga --no-reset-env -l -- /bin/sh -c "$0; echo \$? > $ret_file; kill \$PPID"
+      exit $(
+        cat "$ret_file"
+        rm -f "$ret_file"
+      )
+    elif fbiterm_available; then
+      exec fbiterm -- "$0"
+    else
+      # No kmscon or fbiterm, fall back to english
+      export LANG="en_US.UTF-8"
+      force_english_license=1
+    fi
+  fi
 fi
 
 if [ -z "$JEOS_EULA_ALREADY_AGREED" ] && ! get_credential JEOS_EULA_ALREADY_AGREED firstboot.license-agreed; then
-	welcome_screen_with_console_switch
+  welcome_screen_with_console_switch
 
-	# Find the location of the EULA
-	# An EULA in /etc takes precedence
-	EULA_FILE=/etc/YaST2/licenses/base/license.txt
-	[ -e "${EULA_FILE}" ] || EULA_FILE=/usr/share/licenses/product/base/license.txt
+  # Find the location of the EULA
+  # An EULA in /etc takes precedence
+  EULA_FILE=/etc/YaST2/licenses/base/license.txt
+  [ -e "${EULA_FILE}" ] || EULA_FILE=/usr/share/licenses/product/base/license.txt
 
-	# Failsafe: If no license found, quit.
-	if ! [ -e "$EULA_FILE" ]; then
-		d --msgbox $"No license found - cannot continue" 6 40
-		exit 1
-	fi
+  # Failsafe: If no license found, quit.
+  if ! [ -e "$EULA_FILE" ]; then
+    d --msgbox $"No license found - cannot continue" 6 40
+    exit 1
+  fi
 
-	if [ "$force_english_license" = "0" ]; then
-		for i in "${EULA_FILE%.txt}.${JEOS_LOCALE}.txt" \
-				"${EULA_FILE%.txt}.${JEOS_LOCALE%%.UTF-8}.txt" \
-				"${EULA_FILE%.txt}.${language}.txt"; do
-			if [ -e "$i" ]; then
-				EULA_FILE="$i"
-				break
-			fi
-		done
-	fi
+  if [ "$force_english_license" = "0" ]; then
+    for i in "${EULA_FILE%.txt}.${JEOS_LOCALE}.txt" \
+      "${EULA_FILE%.txt}.${JEOS_LOCALE%%.UTF-8}.txt" \
+      "${EULA_FILE%.txt}.${language}.txt"; do
+      if [ -e "$i" ]; then
+        EULA_FILE="$i"
+        break
+      fi
+    done
+  fi
 
-	while true; do
-		d --exit-label $"Continue" --textbox "$EULA_FILE" $dh_text 85
-		[ -e "${EULA_FILE%/*}/no-acceptance-needed" ] && break
-		d_styled --yesno $"Do you agree with the terms of the license?" 0 0 && break
-		d_styled --msgbox $"Can not continue without agreement" 6 40 || :
-	done
+  while true; do
+    d --exit-label $"Continue" --textbox "$EULA_FILE" $dh_text 85
+    [ -e "${EULA_FILE%/*}/no-acceptance-needed" ] && break
+    d_styled --yesno $"Do you agree with the terms of the license?" 0 0 && break
+    d_styled --msgbox $"Can not continue without agreement" 6 40 || :
+  done
 fi
 
 if [ -z "$JEOS_TIMEZONE" ] && ! get_credential JEOS_TIMEZONE firstboot.timezone; then
-	welcome_screen_with_console_switch
-	dialog_timezone
+  welcome_screen_with_console_switch
+  dialog_timezone
 fi
 
 systemd_firstboot_args+=("--timezone=$JEOS_TIMEZONE")
@@ -207,39 +214,39 @@ run rm -f /etc/localtime
 run systemd-firstboot "${systemd_firstboot_args[@]}"
 
 if [ -z "$JEOS_PASSWORD_ALREADY_SET" ] && ! get_credential password passwd.plaintext-password.root; then
-	welcome_screen_with_console_switch
-	dialog_password
+  welcome_screen_with_console_switch
+  dialog_password
 fi
 
 # Only show the registration prompt on commercial distros and if it's not
 # globally disabled. Can't use /etc/products.d/ for that, even TW has a register target.
-if [ -z "${CPE_NAME##cpe:*o:suse:*}" ] && [ -z "${JEOS_HIDE_SUSECONNECT}" ]; then
-	if [ -x /usr/bin/SUSEConnect ] && [ -x /usr/sbin/transactional-update ]; then
-		welcome_screen_with_console_switch
-		d --msgbox $"Please register this image using your existing SUSE entitlement.
-
-As \"root\" use the following command:
-
- transactional-update register -e company@example.com -r YOUR_CODE
-
-to register the instance with SCC
-
-Without registration this instance does not have access to updates and
-security fixes." 0 0 || true
-	elif [ -x /usr/bin/SUSEConnect ]; then
-		welcome_screen_with_console_switch
-		d --msgbox $"Please register this image using your existing SUSE entitlement.
-
-As \"root\" use the following command:
-
- SUSEConnect -e company@example.com -r YOUR_CODE
-
-to register the instance with SCC
-
-Without registration this instance does not have access to updates and
-security fixes." 0 0 || true
-	fi
-fi
+# if [ -z "${CPE_NAME##cpe:*o:suse:*}" ] && [ -z "${JEOS_HIDE_SUSECONNECT}" ]; then
+#   if [ -x /usr/bin/SUSEConnect ] && [ -x /usr/sbin/transactional-update ]; then
+#     welcome_screen_with_console_switch
+#     d --msgbox $"Please register this image using your existing SUSE entitlement.
+#
+# As \"root\" use the following command:
+#
+#  transactional-update register -e company@example.com -r YOUR_CODE
+#
+# to register the instance with SCC
+#
+# Without registration this instance does not have access to updates and
+# security fixes." 0 0 || true
+#   elif [ -x /usr/bin/SUSEConnect ]; then
+#     welcome_screen_with_console_switch
+#     d --msgbox $"Please register this image using your existing SUSE entitlement.
+#
+# As \"root\" use the following command:
+#
+#  SUSEConnect -e company@example.com -r YOUR_CODE
+#
+# to register the instance with SCC
+#
+# Without registration this instance does not have access to updates and
+# security fixes." 0 0 || true
+#   fi
+# fi
 
 call_module_hook systemd_firstboot
 
@@ -252,9 +259,9 @@ EFI_SYSTAB="/sys/firmware/efi/systab"
 # modprobe and efivars are not available everywhere, just ignore those cases
 run modprobe efivars &>/dev/null || true
 if ! [ -f "$EFI_SYSTAB" ]; then
-	if [ -f /etc/sysconfig/bootloader ]; then
-		run sed -i -e "s/LOADER_TYPE=.*/LOADER_TYPE=grub2/g" /etc/sysconfig/bootloader
-	fi
+  if [ -f /etc/sysconfig/bootloader ]; then
+    run sed -i -e "s/LOADER_TYPE=.*/LOADER_TYPE=grub2/g" /etc/sysconfig/bootloader
+  fi
 fi
 
 call_module_hook post

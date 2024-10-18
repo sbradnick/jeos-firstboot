@@ -91,6 +91,7 @@ user_do_config()
 		break
 	done
 
+	echo -n 1000 > /run/wsl_firstboot_uid
 	return 0
 }
 

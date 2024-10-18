@@ -1,0 +1,74 @@
+# SPDX-License-Identifier: MIT
+# SPDX-FileCopyrightText: Copyright 2024 SUSE LLC
+# shellcheck shell=bash
+
+registration_title=$"Registration"
+registration_description=$"Allow registration during firstboot"
+registration_priority=50
+
+registration_do_config()
+{
+	local reg_email=""
+	local errmsg
+
+	# Loop until cancelled or successfully completed.
+	while true; do
+		local msg="$(
+			echo $"** USE SUSEConnect TO REGISTER **"
+			echo $"This is necessary for non-BCI software updates."
+		)"
+
+		d_with_result --title $"Registration" \
+			--insecure \
+			--cancel-label $"Skip" \
+			--mixedform "${msg}" 9 0 5 \
+			$"Email:" 1 0 "" 1 18 35 0 0 \
+			$" Code:" 2 0 "" 2 18 35 0 0 \
+
+		local ret=$?
+		if [ "$ret" -eq 1 ]; then
+			# Skip button pressed
+			return 0
+		elif [ "$ret" -eq 255 ]; then
+			# ESC
+			if d_styled --yesno $"Do you really want to quit?" 0 0; then
+				exit 1
+			fi
+			continue
+		fi
+
+		readarray -t input <<<"$result"
+
+		# Collect input
+		reg_email="${input[0]}"
+		# Make sure not to pass those as parameters to processes!
+		local reg_code="${input[1]}"
+
+		# Input handling and validation
+
+		if [ -z "$reg_code" ]; then
+			d_styled --title $"Registration" --msgbox $"You have to enter a registration code" 8 45
+			continue
+		fi
+
+		errmsg="$(zypper rr SLE_BCI 2>&1 >>/tmp/registration.txt ; SUSEConnect -e "$reg_email" -r "$reg_code" 2>&1 >>/tmp/registration.txt)"
+
+		break
+	done
+
+	return 0
+}
+
+registration_systemd_firstboot()
+{
+  if [ -z "${CPE_NAME##cpe:*o:suse:*}" ] && [ -z "${JEOS_HIDE_SUSECONNECT}" ]; then
+	  registration_do_config
+  fi
+}
+
+registration_jeos_config()
+{
+  if [ -z "${CPE_NAME##cpe:*o:suse:*}" ] && [ -z "${JEOS_HIDE_SUSECONNECT}" ]; then
+	  registration_do_config
+  fi
+}

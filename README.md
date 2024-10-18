@@ -1,5 +1,8 @@
 # jeos-firstboot
 ## Description
+
+### NOTE: This is an adjusted version of https://github.com/openSUSE/jeos-firstboot, for use with WSL. It SHOULD NOT be used outside of WSL!
+
 jeos-firstboot allows initial configuration and adjustments of a Linux system using text based dialogs.
 
 It is a lightweight and customisable firstboot wizard that allows to set basic system settings during and after the first boot of an image. Including showing the license and prompt for language, keyboard, timezone, root passsword and network configuration..

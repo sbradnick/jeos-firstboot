@@ -102,7 +102,7 @@ welcome_screen_with_console_switch() {
 
 	while true; do
 		ret=0
-		on_all_consoles dialog --backtitle "$PRETTY_NAME" --title $"JeOS Firstboot" --ok-label $"Start" --msgbox $"Welcome to $PRETTY_NAME"'!\nThe initial configuration takes just a few steps.' 0 0 || ret=$?
+		on_all_consoles dialog --backtitle "$PRETTY_NAME" --title $"${PRETTY_NAME} firstboot for WSL" --ok-label $"Start" --msgbox $"Welcome to $PRETTY_NAME"'!\nThe initial configuration takes just a few steps.' 0 0 || ret=$?
 		if [ "$ret" -eq 0 ]; then
 			break;
 		elif [ "$ret" -eq 254 ]; then
