@@ -76,7 +76,7 @@ user_do_config()
 			continue
 		fi
 
-		errmsg="$(useradd "$username" -c "$fullname" 2>&1)"
+		errmsg="$(useradd "$username" -m -c "$fullname" 2>&1)"
 		if [ "$?" -ne 0 ]; then
 			d_styled --title $"User Creation" --msgbox "$(printf $"useradd failed: %s" "$errmsg")" 8 45
 			continue
