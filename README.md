@@ -38,15 +38,17 @@ jeos-config usage:
 Usage: jeos-config [OPTION...] [CONFIG_NAME]
 Configure system settings using an interactive dialog
 
-	-h              shows this usage help
-	locale          Show configuration for locale
-	keytable        Show configuration for keyboard
-	timezone        Show configuration for timezone
-	password        Show configuration for password
-	network         Show configuration for network
-	raspberrywifi   Show configuration for raspberrywifi
-```     
-Additional modules (like raspberrywifi) are shown if present.
+  -h                        Show this usage help
+  locale                    Show configuration for locale
+  keytable                  Show configuration for keyboard
+  timezone                  Show configuration for timezone
+  password                  Show configuration for password
+  network       (removed)   Show configuration for network
+  raspberrywifi (removed)   Show configuration for raspberrywifi
+  registration              Use SUSEConnect, if required
+  switch                    Choose SLES or SLED, if required
+```
+Additional modules (~~like raspberrywifi~~) are shown if proper prerequisites are met.
 
 If no parameter is given it shows a dialog for selection.
 

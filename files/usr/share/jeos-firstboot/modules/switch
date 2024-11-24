@@ -1,0 +1,80 @@
+# SPDX-License-Identifier: MIT
+# SPDX-FileCopyrightText: Copyright 2024 SUSE LLC
+# shellcheck shell=bash
+
+switch_title=$"Switch"
+switch_description=$"Allow switch during firstboot"
+switch_priority=40
+
+switch_do_config()
+{
+	local switch_value=""
+	local errmsg
+
+	# Loop until cancelled or successfully completed.
+	while true; do
+		local msg="$(
+			echo $"** Choose SLES or SLED **"
+			echo $"SLES = SUSE Linux Enterprise Server"
+			echo $"SLED = SUSE Linux Enterprise Desktop"
+			echo $"Current: $(grep -E "<name>.{4}</name>" /etc/products.d/baseproduct | awk -F">" '{print $2}' | awk -F"<" '{print $1}')"
+		)"
+
+		d_with_result --title $"Switch" \
+			--insecure \
+			--cancel-label $"Skip" \
+			--mixedform "${msg}" 9 0 5 \
+			$"SLES or SLED?:" 1 0 "" 1 18 35 0 0 \
+
+		local ret=$?
+		if [ "$ret" -eq 1 ]; then
+			# Skip button pressed
+			return 0
+		elif [ "$ret" -eq 255 ]; then
+			# ESC
+			if d_styled --yesno $"Do you really want to quit?" 0 0; then
+				exit 1
+			fi
+			continue
+		fi
+
+		readarray -t input <<<"$result"
+
+		# Collect input
+		switch_value="${input[0]}"
+		# Make sure not to pass those as parameters to processes!
+		local switch_value="${input[0]}"
+
+		# Input handling and validation
+
+		if [ -z "$switch_value" ]; then
+			d_styled --title $"Switch" --msgbox $"You have to enter a switch value" 8 45
+			continue
+		fi
+
+		if [ "$switch_value" == "SLED" ]; then
+			errmsg="$(sed -i -e 's/sles/sled/g;s/SLES/SLED/g;s/server/desktop/g;s/Server/Desktop/g' /etc/products.d/baseproduct ; cp /etc/products.d/baseproduct /etc/products.d/SLED.prod ; rm /etc/products.d/baseproduct ; ln -s /etc/products.d/SLED.prod /etc/products.d/baseproduct)"
+		fi
+		if [ "$switch_value" == "SLES" ]; then
+			errmsg="$(sed -i -e 's/sled/sles/g;s/SLED/SLES/g;s/desktop/server/g;s/Desktop/Server/g' /etc/products.d/baseproduct ; cp /etc/products.d/baseproduct /etc/products.d/SLES.prod ; rm /etc/products.d/baseproduct ; ln -s /etc/products.d/SLES.prod /etc/products.d/baseproduct)"
+		fi
+
+		break
+	done
+
+	return 0
+}
+
+switch_systemd_firstboot()
+{
+  if [ -z "${CPE_NAME##cpe:*o:suse:*}" ] && [ -z "${JEOS_HIDE_SUSECONNECT}" ]; then
+	  switch_do_config
+  fi
+}
+
+switch_jeos_config()
+{
+  if [ -z "${CPE_NAME##cpe:*o:suse:*}" ] && [ -z "${JEOS_HIDE_SUSECONNECT}" ]; then
+	  switch_do_config
+  fi
+}
