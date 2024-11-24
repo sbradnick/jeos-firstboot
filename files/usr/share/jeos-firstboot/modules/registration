@@ -13,9 +13,11 @@ registration_do_config()
 
 	# Loop until cancelled or successfully completed.
 	while true; do
+		local sle_version="$(grep -E "<name>.{4}</name>" /etc/products.d/baseproduct | awk -F">" '{print $2}' | awk -F"<" '{print $1}')"
 		local msg="$(
 			echo $"** USE SUSEConnect TO REGISTER **"
 			echo $"This is necessary for non-BCI software updates."
+			echo -e $"\nCurrent SLE version: '$sle_version'"
 		)"
 
 		d_with_result --title $"Registration" \
@@ -52,6 +54,7 @@ registration_do_config()
 		fi
 
 		errmsg="$(zypper rr SLE_BCI 2>&1 >>/tmp/registration.txt ; SUSEConnect -e "$reg_email" -r "$reg_code" 2>&1 >>/tmp/registration.txt)"
+		zypper in -y --force-resolution ${sle_version,,}-release 2>&1 >>/tmp/registration.txt
 
 		break
 	done

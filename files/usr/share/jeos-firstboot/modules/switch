@@ -17,7 +17,7 @@ switch_do_config()
 			echo $"** Choose SLES or SLED **"
 			echo $"SLES = SUSE Linux Enterprise Server"
 			echo $"SLED = SUSE Linux Enterprise Desktop"
-			echo $"Current: $(grep -E "<name>.{4}</name>" /etc/products.d/baseproduct | awk -F">" '{print $2}' | awk -F"<" '{print $1}')"
+			echo -e $"\nCurrent: $(grep -E "<name>.{4}</name>" /etc/products.d/baseproduct | awk -F">" '{print $2}' | awk -F"<" '{print $1}')"
 		)"
 
 		d_with_result --title $"Switch" \
